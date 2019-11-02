@@ -3,6 +3,7 @@ public class Output {
     private String nameOfTest;
     private int id;
     private String result;
+    //TODO see if we need to add shown column
 
     public Output(String userName, String nameOfTest, int id, String result) {
         this.userName = userName;

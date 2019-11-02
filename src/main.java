@@ -7,8 +7,10 @@ import org.json.JSONArray;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.util.ArrayList;
 
 public class main {
+    private final double ERROR = .5;
 
     private static GoldStandard getLabelsForGoldStandard(File goldStandardFile, GoldStandard goldStandard) throws FileNotFoundException {
         FileReader reader = new FileReader(goldStandardFile);
@@ -29,6 +31,61 @@ public class main {
         return sb.toString();
     }
 
+    private static ArrayList<Output> getResult(Label userLabel, GoldStandard goldStandard, String userID, String testName, String id) {
+        //for each gold standard run against this label to see its result
+        //TODO make sure you create the case where a label holds two different gold label at some point
+        ArrayList<Output> outputs = new ArrayList<>();
+        for (Label goldStandardLabel : goldStandard) {
+            boolean rightType = false;
+            boolean rightBounds = false;
+            boolean missed = false;
+            if (userLabel.getEventType().equals(goldStandardLabel.getEventType())) {
+                rightType = true;
+            }
+            if (isRightBounds(userLabel, goldStandardLabel)) {
+                rightBounds = true;
+            }
+            else if (isOrphan(userLabel, goldStandardLabel)) {
+                missed = true;
+            }
+
+            String result = new Result(rightType, rightBounds, missed).getResult();
+            //goldStandardLabel.getId()
+            //id of gold standard or userLabel id
+            Output newOutput = new Output(userID, testName, goldStandardLabel.getId(), result);
+            if (!result.equals("Missed")) {
+                outputs.add(newOutput);
+            }
+            else {
+                System.out.println("hi");
+            }
+
+        }
+        return outputs;
+    }
+
+
+    private static boolean isRightBounds(Label userLabel, Label goldStandardLabel) {
+        if (goldStandardLabel.getStartTime() - .5 <= userLabel.getStartTime() && goldStandardLabel.getStartTime() + .5 >= userLabel.getStartTime()) {
+            if (goldStandardLabel.getEndTime() - .5 <= userLabel.getEndTime() && goldStandardLabel.getEndTime() + .5 >= userLabel.getEndTime()) {
+                return true;
+            }
+        }
+        return false;
+        //Either an orphan or wrong bounds
+    }
+
+    private static boolean isOrphan(Label userLabel, Label goldStandardLabel) {
+        if (userLabel.getStartTime() <= goldStandardLabel.getStartTime() && userLabel.getEndTime() <= goldStandardLabel.getStartTime()) {
+            return true;
+        }
+        if (userLabel.getStartTime() >= goldStandardLabel.getEndTime() && userLabel.getEndTime() >= goldStandardLabel.getEndTime()) {
+            return true;
+        }
+        return false;
+        //means it is just wrong bounds
+    }
+
     private static void createCSV(File study, GoldStandard goldStandard, String taskName) throws FileNotFoundException {
 
         for (File userFile : study.listFiles()) {
@@ -44,13 +101,14 @@ public class main {
                 String userID = findUserID(userFile.getName());
                 String testName = taskName;
                 String id = Integer.toString(newLabel.getId());
-                //Result
+                getResult(newLabel, goldStandard, userID, testName, id);
 
 
 
 
                 //TODO write output vars here
             }
+            //All the userLabels
         }
     }
 
