@@ -3,13 +3,15 @@ public class Output {
     private String nameOfTest;
     private int id;
     private String result;
+    private String shown;
     //TODO see if we need to add shown column
 
-    public Output(String userName, String nameOfTest, int id, String result) {
+    public Output(String userName, String nameOfTest, int id, String result, String shown) {
         this.userName = userName;
         this.nameOfTest = nameOfTest;
         this.id = id;
         this.result = result;
+        this.shown = shown;
     }
 
     public String getUserName() {
@@ -42,5 +44,13 @@ public class Output {
 
     public void setResult(String result) {
         this.result = result;
+    }
+
+    public String getShown() {
+        return shown;
+    }
+
+    public void setShown(String shown) {
+        this.shown = shown;
     }
 }

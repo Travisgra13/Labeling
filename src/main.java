@@ -4,18 +4,31 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.json.JSONArray;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
+import java.io.*;
 import java.util.ArrayList;
 
 public class main {
-    private final double ERROR = .5;
+    private static PrintWriter writer;
+
+    static {
+        try {
+            writer = new PrintWriter("label_outputs.txt", "UTF-8");
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+    }
 
     private static GoldStandard getLabelsForGoldStandard(File goldStandardFile, GoldStandard goldStandard) throws FileNotFoundException {
         FileReader reader = new FileReader(goldStandardFile);
         JsonParser parser = new JsonParser();
-        JsonArray labels = (JsonArray) parser.parse(reader);
+        JsonArray labels = null;
+        try {
+            labels = (JsonArray) parser.parse(reader);
+        }catch (Exception e) {
+            e.printStackTrace();
+        }
         for (int i = 0; i < labels.size(); i++) {
             Gson gson = new Gson();
             Label newLabel = gson.fromJson(labels.get(i), Label.class);
@@ -52,12 +65,9 @@ public class main {
             String result = new Result(rightType, rightBounds, missed).getResult();
             //goldStandardLabel.getId()
             //id of gold standard or userLabel id
-            Output newOutput = new Output(userID, testName, goldStandardLabel.getId(), result);
+            Output newOutput = new Output(userID, testName, goldStandardLabel.getId(), result, null);
             if (!result.equals("Missed")) {
                 outputs.add(newOutput);
-            }
-            else {
-                System.out.println("hi");
             }
 
         }
@@ -86,8 +96,128 @@ public class main {
         //means it is just wrong bounds
     }
 
-    private static void createCSV(File study, GoldStandard goldStandard, String taskName) throws FileNotFoundException {
+    private static String shown(String taskName, String studyGroup) {
+        System.out.println("hi");
+        switch (taskName) {
+            case "drywall-red" :
+                if (studyGroup.equals("StudyE")) {
+                    return "Data";
+                }
+                else if (studyGroup.equals("StudyF")) {
+                    return "Video";
+                }
+                else if (studyGroup.equals("StudyG")) {
+                    return "Data";
+                }
+                else if (studyGroup.equals("StudyH")) {
+                    return "Video";
+                }
+                break;
+            case "drywall-blue":
+                if (studyGroup.equals("StudyE")) {
+                    return "Both";
+                }
+                else if (studyGroup.equals("StudyF")) {
+                    return "Both";
+                }
+                else if (studyGroup.equals("StudyG")) {
+                    return "Both";
+                }
+                else if (studyGroup.equals("StudyH")) {
+                    return "Both";
+                }
+                break;
+            case "drywall-pink" :
+                if (studyGroup.equals("StudyE")) {
+                    return "Data";
+                }
+                else if (studyGroup.equals("StudyF")) {
+                    return "Data";
+                }
+                else if (studyGroup.equals("StudyG")) {
+                    return "None";
+                }
+                else if (studyGroup.equals("StudyH")) {
+                    return "None";
+                }
+                break;
+            case "drywall-orange":
+                if (studyGroup.equals("StudyE")) {
+                    return "Video";
+                }
+                else if (studyGroup.equals("StudyF")) {
+                    return "Data";
+                }
+                else if (studyGroup.equals("StudyG")) {
+                    return "Video";
+                }
+                else if (studyGroup.equals("StudyH")) {
+                    return "Data";
+                }
+                break;
+            case "gait-red" :
+                if (studyGroup.equals("StudyE")) {
+                    return "Data";
+                }
+                else if (studyGroup.equals("StudyF")) {
+                    return "Video";
+                }
+                else if (studyGroup.equals("StudyG")) {
+                    return "Data";
+                }
+                else if (studyGroup.equals("StudyH")) {
+                    return "Video";
+                }
+                break;
+            case "gait-blue":
+                if (studyGroup.equals("StudyE")) {
+                    return "Both";
+                }
+                else if (studyGroup.equals("StudyF")) {
+                    return "Both";
+                }
+                else if (studyGroup.equals("StudyG")) {
+                    return "Both";
+                }
+                else if (studyGroup.equals("StudyH")) {
+                    return "Both";
+                }
+                break;
+            case "gait-pink" :
+                if (studyGroup.equals("StudyE")) {
+                    return "None";
+                }
+                else if (studyGroup.equals("StudyF")) {
+                    return "Fix";
+                    //TODO Figure this person out
+                }
+                else if (studyGroup.equals("StudyG")) {
+                    return "Data";
+                }
+                else if (studyGroup.equals("StudyH")) {
+                    return "Data";
+                }
+                break;
+            case "gait-yellow":
+                if (studyGroup.equals("StudyE")) {
+                    return "Video";
+                }
+                else if (studyGroup.equals("StudyF")) {
+                    return "Data";
+                }
+                else if (studyGroup.equals("StudyG")) {
+                    return "Video";
+                }
+                else if (studyGroup.equals("StudyH")) {
+                    return "Data";
+                }
+                break;
+        }
+        return null;
+    }
 
+    private static void createCSV(File study, GoldStandard goldStandard, String taskName) throws FileNotFoundException, UnsupportedEncodingException {
+        ArrayList<Output> outputs = new ArrayList<>();
         for (File userFile : study.listFiles()) {
             UserLabels userLabels = new UserLabels();
             FileReader reader = new FileReader(userFile);
@@ -101,18 +231,28 @@ public class main {
                 String userID = findUserID(userFile.getName());
                 String testName = taskName;
                 String id = Integer.toString(newLabel.getId());
-                getResult(newLabel, goldStandard, userID, testName, id);
-
-
-
-
-                //TODO write output vars here
+                outputs.addAll(getResult(newLabel, goldStandard, userID, testName, id));
             }
             //All the userLabels
         }
+
+       //Write to a file here
+        /*
+        String newFileName = taskName + study.getName() + "-output.txt";
+        PrintWriter writer = new PrintWriter(newFileName, "UTF-8");
+        writer.println(taskName);
+        */
+        writer.println(taskName);
+        writer.println(study.getName());
+        for (Output output : outputs) {
+            Gson gson = new Gson();
+            output.setShown(shown(taskName, study.getName()));
+            String outputString = gson.toJson(output);
+            writer.println(outputString);
+        }
     }
 
-    public static void main(String[] args) throws FileNotFoundException {
+    public static void main(String[] args) throws FileNotFoundException, UnsupportedEncodingException {
         File homeFolder = new File(args[0]);
         File[] taskFolder = homeFolder.listFiles();
         for (File file : taskFolder) {
@@ -133,5 +273,6 @@ public class main {
                 }
             }
         }
+        writer.close();
     }
 }

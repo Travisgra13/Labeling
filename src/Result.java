@@ -13,19 +13,19 @@ public class Result {
 
     private void determineResult() {
         if (isRightType && isRightBounds) {
-            this.result = "Type & Bounds";
+            this.result = "Type and Bounds";
         }
         else if (isOrphan) {
            this.result = "Missed";
         }
         else if (isRightType && !isRightBounds) {
-            this.result = "Type & ~Bounds";
+            this.result = "Type and ~Bounds";
         }
         else if (!isRightType && isRightBounds) {
-            this.result = "~Type & Bounds";
+            this.result = "~Type and Bounds";
         }
         else if (!isRightType && !isRightBounds) {
-            this.result = "~Type & ~Bounds";
+            this.result = "~Type and ~Bounds";
         }
 
     }
