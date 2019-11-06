@@ -1,5 +1,4 @@
 public class Result {
-    private String result;
     private boolean isRightType;
     private boolean isRightBounds;
     private boolean isOrphan;
@@ -8,34 +7,26 @@ public class Result {
         this.isRightType = isRightType;
         this.isRightBounds = isRightBounds;
         this.isOrphan = isOrphan;
-        determineResult();
     }
 
-    private void determineResult() {
+    public int determineResult() {
         if (isRightType && isRightBounds) {
-            this.result = "Type and Bounds";
+            return 1;
         }
         else if (isOrphan) {
-           this.result = "Missed";
+           return 2;
         }
         else if (isRightType && !isRightBounds) {
-            this.result = "Type and ~Bounds";
+            return 3;
         }
         else if (!isRightType && isRightBounds) {
-            this.result = "~Type and Bounds";
+            return 4;
         }
         else if (!isRightType && !isRightBounds) {
-            this.result = "~Type and ~Bounds";
+            return 5;
         }
+        return 0;
 
-    }
-
-    public String getResult() {
-        return result;
-    }
-
-    public void setResult(String result) {
-        this.result = result;
     }
 
     public boolean isRightType() {

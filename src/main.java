@@ -62,11 +62,36 @@ public class main {
                 missed = true;
             }
 
-            String result = new Result(rightType, rightBounds, missed).getResult();
+            int result = new Result(rightType, rightBounds, missed).determineResult();
             //goldStandardLabel.getId()
             //id of gold standard or userLabel id
-            Output newOutput = new Output(userID, testName, goldStandardLabel.getId(), result, null);
-            if (!result.equals("Missed")) {
+            String bounds = null;
+            String type = null;
+
+            switch(result) {
+                case 1:
+                    bounds = "correct";
+                    type = "correct";
+                    break;
+                case 2:
+                    bounds = "missed";
+                    type = "missed";
+                    break;
+                case 3:
+                    bounds = "wrong";
+                    type = "correct";
+                    break;
+                case 4:
+                    bounds = "correct";
+                    type = "wrong";
+                    break;
+                case 5:
+                    bounds = "wrong";
+                    type = "wrong";
+            }
+
+            Output newOutput = new Output(userID, testName, goldStandardLabel.getId(), bounds, type, null);
+            if (result != 2) {
                 outputs.add(newOutput);
             }
 
@@ -97,7 +122,6 @@ public class main {
     }
 
     private static String shown(String taskName, String studyGroup) {
-        System.out.println("hi");
         switch (taskName) {
             case "drywall-red" :
                 if (studyGroup.equals("StudyE")) {
@@ -235,13 +259,6 @@ public class main {
             }
             //All the userLabels
         }
-
-       //Write to a file here
-        /*
-        String newFileName = taskName + study.getName() + "-output.txt";
-        PrintWriter writer = new PrintWriter(newFileName, "UTF-8");
-        writer.println(taskName);
-        */
         writer.println(taskName);
         writer.println(study.getName());
         for (Output output : outputs) {
