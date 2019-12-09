@@ -4,17 +4,24 @@ public class Output {
     private int id;
     private String bounds;
     private String type;
+    private float startError;
+    private float endError;
     private String shown;
+    private int numOfOverlappedLabels;
     //TODO see if we need to add shown column
 
-    public Output(String userName, String nameOfTest, int id, String bounds, String type, String shown) {
+    public Output(String userName, String nameOfTest, int id, String bounds, String type, float startError, float endError, String shown, int numOfOverlappedLabels) {
         this.userName = userName;
         this.nameOfTest = nameOfTest;
         this.id = id;
         this.bounds = bounds;
         this.type = type;
+        this.startError = startError;
+        this.endError = endError;
         this.shown = shown;
+        this.numOfOverlappedLabels = numOfOverlappedLabels;
     }
+
 
     public String getUserName() {
         return userName;
@@ -56,11 +63,35 @@ public class Output {
         this.type = type;
     }
 
+    public float getStartError() {
+        return startError;
+    }
+
+    public void setStartError(float startError) {
+        this.startError = startError;
+    }
+
+    public float getEndError() {
+        return endError;
+    }
+
+    public void setEndError(float endError) {
+        this.endError = endError;
+    }
+
     public String getShown() {
         return shown;
     }
 
     public void setShown(String shown) {
         this.shown = shown;
+    }
+
+    public int getNumOfOverlappedLabels() {
+        return numOfOverlappedLabels;
+    }
+
+    public void setNumOfOverlappedLabels(int numOfOverlappedLabels) {
+        this.numOfOverlappedLabels = numOfOverlappedLabels;
     }
 }

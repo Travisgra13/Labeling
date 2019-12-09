@@ -14,7 +14,7 @@ public class main {
     static {
         try {
             writer = new PrintWriter("label_outputs.txt", "UTF-8");
-            writer.println("userName, nameOfTest, eventID, bounds, type, allRight, allWrong, typeRightBoundsWrong, boundsRightTypeWrong, NoAttempt, shown");
+            writer.println("userName, nameOfTest, eventID, bounds, type, allRight, allWrong, typeRightBoundsWrong, boundsRightTypeWrong, NoAttempt, startError, endError, shown, numOfOverlappedLabels");
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (UnsupportedEncodingException e) {
@@ -34,7 +34,12 @@ public class main {
         for (int i = 0; i < labels.size(); i++) {
             Gson gson = new Gson();
             Label newLabel = gson.fromJson(labels.get(i), Label.class);
-            goldStandard.add(newLabel);
+            if (!isZeroLabel(newLabel)) {
+                goldStandard.add(newLabel);
+            }
+           else {
+               //ignore 0 length gold standard
+            }
         }
         return goldStandard;
     }
@@ -44,6 +49,10 @@ public class main {
         int labelsIndex = sb.indexOf(".labels.json");
         sb.delete(labelsIndex, sb.length());
         return sb.toString();
+    }
+
+    private static float findError(float goldStandardTime, float userTime) {
+        return (userTime - goldStandardTime);
     }
 
     private static ArrayList<Output> getResult(Label userLabel, GoldStandard goldStandard, String userID, String testName, String id) {
@@ -96,14 +105,18 @@ public class main {
                     type = "wrong";
             }
             if (result != 2) {
-
-                Output newOutput = new Output(userID, testName, goldStandardLabel.getId(), bounds, type, null);
+                if (testName.equals("drywall-orange") && (userID).equals("aqua1")) {
+                    System.out.println("0found");
+                }
+                float startError = findError(goldStandardLabel.getStartTime(), userLabel.getStartTime());
+                float endError = findError(goldStandardLabel.getEndTime(), userLabel.getEndTime());
+                Output newOutput = new Output(userID, testName, goldStandardLabel.getId(), bounds, type, startError, endError, null, 1);
                 outputs.add(newOutput);
             }
 
         }
         if (outputs.size() == 0) {
-            Output missedOutput = new Output(userID, testName, -1, "NoAttempt", "NoAttempt", null);
+            Output missedOutput = new Output(userID, testName, -1, "NoAttempt", "NoAttempt", 0.0f, 0.0f, null, 0);
             outputs.add(missedOutput);
         }
         return outputs;
@@ -117,7 +130,7 @@ public class main {
             for (int k = i + 1; k < currOutputs.size(); k++) {
                 int peekId = currOutputs.get(k).getId();
                 if (currId == peekId && currId != -1) { //at the end of this if, we can delete the element at peekID from currOutputs and set i -= 1
-                    Output newOutput = new Output(currOutputs.get(i).getUserName(), currOutputs.get(i).getNameOfTest(), currId, "wrong", "correct", currOutputs.get(i).getShown());
+                    Output newOutput = new Output(currOutputs.get(i).getUserName(), currOutputs.get(i).getNameOfTest(), currId, "wrong", "correct", 0.0f, 0.0f, currOutputs.get(i).getShown(), currOutputs.get(i).getNumOfOverlappedLabels() + 1);
                     if (newList.size() == 0) {
                         if (currOutputs.get(i).getType().equals("wrong") || currOutputs.get(k).getType().equals("wrong")) {
                             newOutput.setType("wrong");
@@ -288,29 +301,58 @@ public class main {
         return null;
     }
 
-    private static void createCSV(File study, GoldStandard goldStandard, String taskName) throws FileNotFoundException, UnsupportedEncodingException {
-        ArrayList<Output> outputs = new ArrayList<>();
+    private static void createCSV(File study, GoldStandard goldStandard, String taskName) throws IOException {
+        ArrayList<Output> allOutputs = new ArrayList<>();
+        ArrayList<Integer> ids = new ArrayList<>();
         for (File userFile : study.listFiles()) {
+            if (taskName.equals("drywall-orange") && study.getName().equals("StudyH") && findUserID(userFile.getName()).equals("yellow3")) {
+                System.out.println("hi");
+            }
+            if (taskName.equals("drywall-orange") && study.getName().equals("StudyG") && findUserID(userFile.getName()).equals("aqua1")) {
+                System.out.println("hi");
+            }
+            if (study.getName().equals("StudyE") && findUserID(userFile.getName()).equals("bronze2")) {
+                System.out.println("Found bronze2");
+            }
+            ArrayList<Output> userOutputs = new ArrayList<>();
+            ids = new ArrayList<>();
             UserLabels userLabels = new UserLabels();
             FileReader reader = new FileReader(userFile);
             JsonParser parser = new JsonParser();
             JsonArray labels = (JsonArray) parser.parse(reader);
+            reader.close();//FIXME this one is new
             for (int i = 0; i < labels.size(); i++) {
                 Gson gson = new Gson();
                 Label newLabel = gson.fromJson(labels.get(i), Label.class);
                 userLabels.add(newLabel);
-
                 String userID = findUserID(userFile.getName());
                 String testName = taskName;
                 String id = Integer.toString(newLabel.getId());
-                outputs.addAll(getResult(newLabel, goldStandard, userID, testName, id));
-                outputs = consolidateOverlaps(outputs);
+                ArrayList<Output> resultOutputs = getResult(newLabel, goldStandard, userID, testName, id);
+               // allOutputs.addAll(resultOutputs);
+                userOutputs.addAll(resultOutputs);
+               // allOutputs = consolidateOverlaps(allOutputs);
+                userOutputs = consolidateOverlaps(userOutputs);
+
             }
+            for (int i = 0; i < userOutputs.size(); i++) {
+                if(!ids.contains(userOutputs.get(i).getId())) {
+                    ids.add(userOutputs.get(i).getId());
+                }
+            }
+
+            for (int j = 1; j < goldStandard.size(); j++) {
+                if (!ids.contains(j)) {
+                    Output noAttemptGoldStandard = new Output(findUserID(userFile.getName()), taskName, j, "NoAttempt", "NoAttempt", 0.0f, 0.0f, null, 0);
+                    userOutputs.add(noAttemptGoldStandard);
+                }
+            }
+            allOutputs.addAll(userOutputs);
             //All the userLabels
+
         }
-        //writer.println(taskName);
-        //writer.println(study.getName());
-        for (Output output : outputs) {
+
+        for (Output output : allOutputs) {
             Gson gson = new Gson();
             output.setShown(shown(taskName, study.getName()));
             int bounds;
@@ -333,7 +375,7 @@ public class main {
             int boundsRightTypeWrong = 0;
             int noAttempt = 0;
 
-            if (output.getId() == -1) {
+            if (output.getId() == -1 || output.getBounds().equals("NoAttempt")) {
                 noAttempt = 1;
             }
             else if (bounds == 1 && type == 1) {
@@ -350,13 +392,23 @@ public class main {
             }
             String myString = output.getUserName() + "," + output.getNameOfTest() + "," + output.getId() + "," + Integer.toString(bounds) + "," + Integer.toString(type) + ","
                     + Integer.toString(allRight) + "," + Integer.toString(allWrong) + "," + Integer.toString(typeRightBoundsWrong) + "," + Integer.toString(boundsRightTypeWrong)
-                    + "," + Integer.toString(noAttempt) + "," + output.getShown();
+                    + "," + Integer.toString(noAttempt) + "," + Float.toString(output.getStartError()) + "," + Float.toString(output.getEndError()) + "," + output.getShown() + "," + Integer.toString(output.getNumOfOverlappedLabels());
+            if (output.getNumOfOverlappedLabels() == 1) {
+                System.out.println("found2");
+            }
             String outputString = gson.toJson(output);
             writer.println(myString);
         }
     }
 
-    public static void main(String[] args) throws FileNotFoundException, UnsupportedEncodingException {
+    private static boolean isZeroLabel(Label goldStandard) {
+        if (goldStandard.getEndTime() - goldStandard.getStartTime() == 0.0f) {
+            return true;
+        }
+        return false;
+    }
+
+    public static void main(String[] args) throws IOException {
         File homeFolder = new File(args[0]);
         File[] taskFolder = homeFolder.listFiles();
         for (File file : taskFolder) {
@@ -367,6 +419,7 @@ public class main {
                 if (innerFiles.listFiles() == null) {
                     //TODO This is a gold standard
                     try {
+
                         goldStandard = getLabelsForGoldStandard(innerFiles, goldStandard);
                     }catch (FileNotFoundException e) {
                         e.printStackTrace();
