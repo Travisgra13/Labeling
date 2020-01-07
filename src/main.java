@@ -350,8 +350,9 @@ public class main {
                 totalGait++;
             }
         }
-        System.out.println(sb.toString());
-
+        if (sb.toString().contains("correct") || sb.toString().contains("wrong")) {
+            System.out.println(sb.toString());
+        }
     }
 
     private static void createCSV(File study, GoldStandard goldStandard, String taskName) throws IOException {

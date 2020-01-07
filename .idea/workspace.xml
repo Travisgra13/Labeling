@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="ed1965b7-0713-420c-90a8-9af0b28113b0" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/out/production/GoldStandard/main.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/GoldStandard/main.class" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.java" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -89,11 +90,6 @@
           <url>file://$PROJECT_DIR$/src/main.java</url>
           <line>333</line>
           <option name="timeStamp" value="14" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="java-line">
-          <url>file://$PROJECT_DIR$/src/main.java</url>
-          <line>352</line>
-          <option name="timeStamp" value="15" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
