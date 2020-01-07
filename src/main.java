@@ -1,16 +1,17 @@
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import org.json.JSONArray;
-
 import java.io.*;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Scanner;
 
 public class main {
     private static PrintWriter writer;
-
+    private static int numCorrect = 0;
+    private static int numTypeCorrect = 0;
+    private static int numBoundsCorrect = 0;
+    private static int numIncorrect = 0;
+    private static int totalGait = 0;
     static {
         try {
             writer = new PrintWriter("label_outputs.txt", "UTF-8");
@@ -63,6 +64,8 @@ public class main {
             boolean rightType = false;
             boolean rightBounds = false;
             boolean missed = false;
+            if (userID.equals("csvgaitblue") && testName.equals("gait-blue") && goldStandardLabel.getId() == 5) {
+            }
             if (userLabel.getEventType().equals(goldStandardLabel.getEventType())) {
                 rightType = true;
             }
@@ -106,7 +109,6 @@ public class main {
             }
             if (result != 2) {
                 if (testName.equals("drywall-orange") && (userID).equals("aqua1")) {
-                    System.out.println("0found");
                 }
                 float startError = findError(goldStandardLabel.getStartTime(), userLabel.getStartTime());
                 float endError = findError(goldStandardLabel.getEndTime(), userLabel.getEndTime());
@@ -128,21 +130,44 @@ public class main {
             int currId = currOutputs.get(i).getId();
             ArrayList<Output> newList = new ArrayList<>();
             for (int k = i + 1; k < currOutputs.size(); k++) {
+                if (currOutputs.get(i).getUserName().contains("csv") && currOutputs.get(i).getNameOfTest().contains("gait-blue") && currId == 5) {
+                }
                 int peekId = currOutputs.get(k).getId();
                 if (currId == peekId && currId != -1) { //at the end of this if, we can delete the element at peekID from currOutputs and set i -= 1
-                    Output newOutput = new Output(currOutputs.get(i).getUserName(), currOutputs.get(i).getNameOfTest(), currId, "wrong", "correct", 0.0f, 0.0f, currOutputs.get(i).getShown(), currOutputs.get(i).getNumOfOverlappedLabels() + 1);
-                    if (newList.size() == 0) {
-                        if (currOutputs.get(i).getType().equals("wrong") || currOutputs.get(k).getType().equals("wrong")) {
-                            newOutput.setType("wrong");
-                        }
-                        newList.add(newOutput);
+                    Output newOutput = new Output(currOutputs.get(i).getUserName(), currOutputs.get(i).getNameOfTest(), currId, "correct", "correct", 0.0f, 0.0f, currOutputs.get(i).getShown(), currOutputs.get(i).getNumOfOverlappedLabels() + 1);
+                    float startAbsErrorFirst = Math.abs(currOutputs.get(i).getStartError());
+                    float endAbsErrorFirst = Math.abs(currOutputs.get(i).getEndError());
+                    float startAbsErrorSecond = Math.abs(currOutputs.get(k).getStartError());
+                    float endAbsErrorSecond = Math.abs(currOutputs.get(k).getEndError());
+                    float sumFirst = startAbsErrorFirst + endAbsErrorFirst;
+                    float sumSecond = startAbsErrorSecond + endAbsErrorSecond;
+                    Output result;
+                    if (sumFirst < sumSecond) {
+                        result = currOutputs.get(i);
                     }
                     else {
-                        if (newList.get(0).getType().equals("wrong") || currOutputs.get(k).getType().equals("wrong")) {
+                        result = currOutputs.get(k);
+                    }
+
+                    /*if (newList.size() == 0) {
+                      *//*  if (currOutputs.get(i).getBounds().equals("wrong") && currOutputs.get(k).getBounds().equals("wrong")) {
+                            newOutput.setBounds("wrong");
+                        }
+                        if (currOutputs.get(i).getType().equals("wrong") && currOutputs.get(k).getType().equals("wrong")) {
+                            newOutput.setType("wrong");
+                        }*//*
+                        newList.add(result);
+                    }
+                    else {
+                       *//*\ if (newList.get(0).getType().equals("wrong") && currOutputs.get(k).getType().equals("wrong")) {
                             newList.get(0).setType("wrong");
                         }
-                    }
-                    currOutputs.set(i, newList.get(0));
+                        if (newList.get(0).getBounds().equals("wrong") && currOutputs.get(k).getBounds().equals("wrong")) {
+                            newList.get(0).setBounds("wrong");
+                        }*//*
+                       newList.set(0, result);
+                    }*/
+                    currOutputs.set(i, result);
                     currOutputs.remove(k);
                     k--;
                 }
@@ -172,10 +197,10 @@ public class main {
     }
 
     private static boolean isOrphan(Label userLabel, Label goldStandardLabel) {
-        if (userLabel.getStartTime()  < goldStandardLabel.getStartTime() - .5 && userLabel.getEndTime() < goldStandardLabel.getStartTime() - .5) {
+        if (userLabel.getStartTime()  < goldStandardLabel.getStartTime() - 0 && userLabel.getEndTime() < goldStandardLabel.getStartTime() - 0) {
             return true;
         }
-        if (userLabel.getStartTime() > goldStandardLabel.getEndTime() + .5 && userLabel.getEndTime() > goldStandardLabel.getEndTime() + .5) {
+        if (userLabel.getStartTime() > goldStandardLabel.getEndTime() + 0 && userLabel.getEndTime() > goldStandardLabel.getEndTime() + 0) {
             return true;
         }
         return false;
@@ -301,19 +326,38 @@ public class main {
         return null;
     }
 
+    private static void countCorrectGaitEvents(ArrayList<Output> allOutputs) {
+        String init = "Bounds, ID, numOfOverlapped, Type, Username, StartError, EndError \n ";
+        StringBuilder sb = new StringBuilder(init);
+        for (Output output : allOutputs) {
+            if (output.getUserName().contains("csvaqua2")) {
+                sb.append(output.getBounds() + ", " + output.getId() + ", " + output.getNumOfOverlappedLabels() + ", " + output.getType() + ", " + output.getUserName() + ", " + output.getStartError() + ", "  + output.getEndError() + '\n');
+                if (output.getBounds().equals("correct") && output.getType().equals("correct")) {
+                    numCorrect++;
+                    if (output.getNameOfTest().contains("gait-blue")) {
+                    }
+                }
+                else if (output.getBounds().equals("correct") && output.getType().equals("wrong")) {
+                    numBoundsCorrect++;
+
+                }
+                else if (output.getBounds().equals("wrong") && output.getType().equals("correct")) {
+                    numTypeCorrect++;
+                }
+                else if (output.getBounds().equals("wrong") && output.getType().equals("wrong")) {
+                    numIncorrect++;
+                }
+                totalGait++;
+            }
+        }
+        System.out.println(sb.toString());
+
+    }
+
     private static void createCSV(File study, GoldStandard goldStandard, String taskName) throws IOException {
         ArrayList<Output> allOutputs = new ArrayList<>();
         ArrayList<Integer> ids = new ArrayList<>();
         for (File userFile : study.listFiles()) {
-            if (taskName.equals("drywall-orange") && study.getName().equals("StudyH") && findUserID(userFile.getName()).equals("yellow3")) {
-                System.out.println("hi");
-            }
-            if (taskName.equals("drywall-orange") && study.getName().equals("StudyG") && findUserID(userFile.getName()).equals("aqua1")) {
-                System.out.println("hi");
-            }
-            if (study.getName().equals("StudyE") && findUserID(userFile.getName()).equals("bronze2")) {
-                System.out.println("Found bronze2");
-            }
             ArrayList<Output> userOutputs = new ArrayList<>();
             ids = new ArrayList<>();
             UserLabels userLabels = new UserLabels();
@@ -356,6 +400,7 @@ public class main {
             Gson gson = new Gson();
             output.setShown(shown(taskName, study.getName()));
             int bounds;
+
             if (output.getBounds().equals("correct")) {
                 bounds = 1;
             }
@@ -394,11 +439,12 @@ public class main {
                     + Integer.toString(allRight) + "," + Integer.toString(allWrong) + "," + Integer.toString(typeRightBoundsWrong) + "," + Integer.toString(boundsRightTypeWrong)
                     + "," + Integer.toString(noAttempt) + "," + Float.toString(output.getStartError()) + "," + Float.toString(output.getEndError()) + "," + output.getShown() + "," + Integer.toString(output.getNumOfOverlappedLabels());
             if (output.getNumOfOverlappedLabels() == 1) {
-                System.out.println("found2");
+
             }
             String outputString = gson.toJson(output);
             writer.println(myString);
         }
+        countCorrectGaitEvents(allOutputs);
     }
 
     private static boolean isZeroLabel(Label goldStandard) {
@@ -430,6 +476,13 @@ public class main {
                 }
             }
         }
+        System.out.println("Num Correct is " + numCorrect);
+        System.out.println("Num Type only is " + numTypeCorrect);
+        System.out.println("Num Bounds only is " + numBoundsCorrect);
+        System.out.println("Num incorrect is " + numIncorrect);
+        System.out.println("Total is " + totalGait);
+
+
         writer.close();
     }
 }
