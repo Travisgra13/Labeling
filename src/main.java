@@ -149,25 +149,25 @@ public class main {
                         result = currOutputs.get(k);
                     }
 
-                    /*if (newList.size() == 0) {
-                      *//*  if (currOutputs.get(i).getBounds().equals("wrong") && currOutputs.get(k).getBounds().equals("wrong")) {
+                    if (newList.size() == 0) {
+                      /*  if (currOutputs.get(i).getBounds().equals("wrong") && currOutputs.get(k).getBounds().equals("wrong")) {
                             newOutput.setBounds("wrong");
                         }
                         if (currOutputs.get(i).getType().equals("wrong") && currOutputs.get(k).getType().equals("wrong")) {
                             newOutput.setType("wrong");
-                        }*//*
+                        }*/
                         newList.add(result);
                     }
                     else {
-                       *//*\ if (newList.get(0).getType().equals("wrong") && currOutputs.get(k).getType().equals("wrong")) {
+                       /*\ if (newList.get(0).getType().equals("wrong") && currOutputs.get(k).getType().equals("wrong")) {
                             newList.get(0).setType("wrong");
                         }
                         if (newList.get(0).getBounds().equals("wrong") && currOutputs.get(k).getBounds().equals("wrong")) {
                             newList.get(0).setBounds("wrong");
-                        }*//*
+                        }*/
                        newList.set(0, result);
-                    }*/
-                    currOutputs.set(i, result);
+                    }
+                    currOutputs.set(i, newList.get(0));
                     currOutputs.remove(k);
                     k--;
                 }
