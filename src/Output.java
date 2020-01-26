@@ -1,3 +1,5 @@
+import java.util.ArrayList;
+
 public class Output {
     private String userName;
     private String nameOfTest;
@@ -7,10 +9,11 @@ public class Output {
     private float startError;
     private float endError;
     private String shown;
+    private ArrayList<Integer> overlaps;
     private int numOfOverlappedLabels;
     //TODO see if we need to add shown column
 
-    public Output(String userName, String nameOfTest, int id, String bounds, String type, float startError, float endError, String shown, int numOfOverlappedLabels) {
+    public Output(String userName, String nameOfTest, int id, String bounds, String type, float startError, float endError, String shown, int numOfOverlappedLabels, ArrayList <Integer> overlaps) {
         this.userName = userName;
         this.nameOfTest = nameOfTest;
         this.id = id;
@@ -20,6 +23,7 @@ public class Output {
         this.endError = endError;
         this.shown = shown;
         this.numOfOverlappedLabels = numOfOverlappedLabels;
+        this.overlaps = overlaps;
     }
 
 
@@ -94,4 +98,18 @@ public class Output {
     public void setNumOfOverlappedLabels(int numOfOverlappedLabels) {
         this.numOfOverlappedLabels = numOfOverlappedLabels;
     }
+
+    public ArrayList<Integer> getOverlaps() {
+        return overlaps;
+    }
+
+    public void setOverlaps(ArrayList<Integer> overlaps) {
+        this.overlaps = overlaps;
+    }
+
+    public void addNewOverlappingLabel(ArrayList<Integer> labelIDs) {
+        this.overlaps.addAll(labelIDs);
+    }
+
+
 }

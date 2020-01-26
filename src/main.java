@@ -3,10 +3,15 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonParser;
 import java.io.*;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Scanner;
 
 public class main {
     private static PrintWriter writer;
+    private static Map<String, ArrayList<Label>> goldStandardsMap = new HashMap<>();
+    private static Map<String, ArrayList<Label>> userLabelsMap = new HashMap<>();
+    private static ArrayList<Output> allOutputs = new ArrayList<>();
     private static int numCorrect = 0;
     private static int numTypeCorrect = 0;
     private static int numBoundsCorrect = 0;
@@ -23,7 +28,7 @@ public class main {
         }
     }
 
-    private static GoldStandard getLabelsForGoldStandard(File goldStandardFile, GoldStandard goldStandard) throws FileNotFoundException {
+    private static void getLabelsForGoldStandard(File goldStandardFile) throws FileNotFoundException {
         FileReader reader = new FileReader(goldStandardFile);
         JsonParser parser = new JsonParser();
         JsonArray labels = null;
@@ -35,14 +40,49 @@ public class main {
         for (int i = 0; i < labels.size(); i++) {
             Gson gson = new Gson();
             Label newLabel = gson.fromJson(labels.get(i), Label.class);
-            if (!isZeroLabel(newLabel)) {
-                goldStandard.add(newLabel);
+            if (isZeroLabel(newLabel)) {
+                continue;
             }
-           else {
-               //ignore 0 length gold standard
+
+            if (!goldStandardsMap.containsKey(newLabel.getTestName())) {
+                ArrayList<Label> newLabelList = new ArrayList<>();
+                newLabelList.add(newLabel);
+                goldStandardsMap.put(newLabel.getTestName(), newLabelList);
             }
+            else {
+                goldStandardsMap.get(newLabel.getTestName()).add(newLabel);
+            }
+
         }
-        return goldStandard;
+
+    }
+
+    private static void getLabelsForUserLabels(File userLabelFile) throws FileNotFoundException {
+        FileReader reader = new FileReader(userLabelFile);
+        JsonParser parser = new JsonParser();
+        JsonArray labels = null;
+        try {
+            labels = (JsonArray) parser.parse(reader);
+        }catch (Exception e) {
+            e.printStackTrace();
+        }
+        for (int i = 0; i < labels.size(); i++) {
+            Gson gson = new Gson();
+            Label newLabel = gson.fromJson(labels.get(i), Label.class);
+            if (isZeroLabel(newLabel)) {
+                continue;
+            }
+
+            if (!userLabelsMap.containsKey(newLabel.getTestName())) {
+                ArrayList<Label> newLabelList = new ArrayList<>();
+                newLabelList.add(newLabel);
+                userLabelsMap.put(newLabel.getTestName(), newLabelList);
+            }
+            else {
+                userLabelsMap.get(newLabel.getTestName()).add(newLabel);
+            }
+
+        }
     }
 
     private static String findUserID(String filePath) {
@@ -56,15 +96,96 @@ public class main {
         return (userTime - goldStandardTime);
     }
 
+    private static void testAgainstRelevantUserLabels(Label goldStandardLabel, ArrayList<Label> relevantUserLabels) {
+        //multiple users
+        String previousUser = "";
+        ArrayList<Output> userOutputs = new ArrayList<>();
+        for (int i = 0; i < relevantUserLabels.size(); i++) {
+            Label userLabel = relevantUserLabels.get(i);
+            //Assuming there are no zero labels by this point
+            if (i == relevantUserLabels.size() - 1) {
+                userOutputs.add(getResult(goldStandardLabel, userLabel));
+                allOutputs.addAll(consolidateOverlaps(userOutputs));
+                return;
+            }
+            if (!userLabel.getUserName().equals(previousUser)) {
+                //add noAttempts?
+                allOutputs.addAll(consolidateOverlaps(userOutputs));
+                userOutputs = new ArrayList<>();
+            }
+            userOutputs.add(getResult(goldStandardLabel, userLabel));
+            previousUser = userLabel.getUserName();
+
+        }
+    }
+
+    private static Output getResult(Label goldStandardLabel, Label userLabel) {
+        boolean rightType = false;
+        boolean rightBounds = false;
+        boolean missed = false;
+
+        if (userLabel.getEventType().equals(goldStandardLabel.getEventType())) {
+            rightType = true;
+        }
+        if (isRightBounds(userLabel, goldStandardLabel)) {
+            rightBounds = true;
+        }
+        else if (isOrphan(userLabel, goldStandardLabel)) {
+            missed = true;
+        }
+
+        int result = new Result(rightType, rightBounds, missed).determineResult();
+
+        //goldStandardLabel.getId()
+        //id of gold standard or userLabel id
+        String bounds = null;
+        String type = null;
+
+        switch(result) {
+            case 1:
+                bounds = "correct";
+                type = "correct";
+                break;
+
+            case 3:
+                bounds = "wrong";
+                type = "correct";
+                break;
+            case 4:
+                bounds = "correct";
+                type = "wrong";
+                break;
+            case 5:
+                bounds = "wrong";
+                type = "wrong";
+        }
+
+        if (result != 2) {
+            float startError = findError(goldStandardLabel.getStartTime(), userLabel.getStartTime());
+            float endError = findError(goldStandardLabel.getEndTime(), userLabel.getEndTime());
+            ArrayList<Integer> array = new ArrayList<>();
+            array.add(userLabel.getId());
+            Output newOutput = new Output(userLabel.getUserName(), userLabel.getTestName(), goldStandardLabel.getId(), bounds, type, startError, endError, userLabel.getShown(), 1, array);
+            return newOutput;
+        }
+
+        Output missedOutput = new Output(userLabel.getUserName(), userLabel.getTestName(), -1, "NoAttempt", "NoAttempt", 0.0f, 0.0f, userLabel.getShown(), 0, new ArrayList<>());
+        return missedOutput;
+    }
+
     private static ArrayList<Output> getResult(Label userLabel, GoldStandard goldStandard, String userID, String testName, String id) {
         //for each gold standard run against this label to see its result
         //TODO make sure you create the case where a label holds two different gold label at some point
         ArrayList<Output> outputs = new ArrayList<>();
+        if (isZeroLabel(userLabel)) {
+            return outputs;
+        }
         for (Label goldStandardLabel : goldStandard) {
             boolean rightType = false;
             boolean rightBounds = false;
             boolean missed = false;
-            if (userID.equals("csvgaitblue") && testName.equals("gait-blue") && goldStandardLabel.getId() == 5) {
+            if (userLabel.getUserName().equals("aqua1") && userLabel.getTestName().equals("drywall-blue") && userLabel.getId() == 2 && goldStandardLabel.getId() == 3)  {
+                System.out.println("Found it");
             }
             if (userLabel.getEventType().equals(goldStandardLabel.getEventType())) {
                 rightType = true;
@@ -112,13 +233,15 @@ public class main {
                 }
                 float startError = findError(goldStandardLabel.getStartTime(), userLabel.getStartTime());
                 float endError = findError(goldStandardLabel.getEndTime(), userLabel.getEndTime());
-                Output newOutput = new Output(userID, testName, goldStandardLabel.getId(), bounds, type, startError, endError, null, 1);
+                ArrayList<Integer> array = new ArrayList<>();
+                array.add(userLabel.getId());
+                Output newOutput = new Output(userID, testName, goldStandardLabel.getId(), bounds, type, startError, endError, null, 1, array);
                 outputs.add(newOutput);
             }
 
         }
         if (outputs.size() == 0) {
-            Output missedOutput = new Output(userID, testName, -1, "NoAttempt", "NoAttempt", 0.0f, 0.0f, null, 0);
+            Output missedOutput = new Output(userID, testName, -1, "NoAttempt", "NoAttempt", 0.0f, 0.0f, null, 0, new ArrayList<>());
             outputs.add(missedOutput);
         }
         return outputs;
@@ -130,11 +253,12 @@ public class main {
             int currId = currOutputs.get(i).getId();
             ArrayList<Output> newList = new ArrayList<>();
             for (int k = i + 1; k < currOutputs.size(); k++) {
-                if (currOutputs.get(i).getUserName().contains("csv") && currOutputs.get(i).getNameOfTest().contains("gait-blue") && currId == 5) {
-                }
                 int peekId = currOutputs.get(k).getId();
                 if (currId == peekId && currId != -1) { //at the end of this if, we can delete the element at peekID from currOutputs and set i -= 1
-                    Output newOutput = new Output(currOutputs.get(i).getUserName(), currOutputs.get(i).getNameOfTest(), currId, "correct", "correct", 0.0f, 0.0f, currOutputs.get(i).getShown(), currOutputs.get(i).getNumOfOverlappedLabels() + 1);
+                    //Output newOutput = new Output(currOutputs.get(i).getUserName(), currOutputs.get(i).getNameOfTest(), currId, "correct", "correct", 0.0f, 0.0f, currOutputs.get(i).getShown(), currOutputs.get(i).getNumOfOverlappedLabels() + 1);
+                    if (!currOutputs.get(i).getNameOfTest().equals(currOutputs.get(k).getNameOfTest())) {
+                        System.out.println("broken");
+                    }
                     float startAbsErrorFirst = Math.abs(currOutputs.get(i).getStartError());
                     float endAbsErrorFirst = Math.abs(currOutputs.get(i).getEndError());
                     float startAbsErrorSecond = Math.abs(currOutputs.get(k).getStartError());
@@ -144,27 +268,22 @@ public class main {
                     Output result;
                     if (sumFirst < sumSecond) {
                         result = currOutputs.get(i);
+                        result.addNewOverlappingLabel(currOutputs.get(k).getOverlaps());
                     }
                     else {
                         result = currOutputs.get(k);
+                        result.addNewOverlappingLabel(currOutputs.get(i).getOverlaps());
                     }
 
+                    int before = result.getNumOfOverlappedLabels();
+                    result.setNumOfOverlappedLabels(before + 1);
+
+
+
                     if (newList.size() == 0) {
-                      /*  if (currOutputs.get(i).getBounds().equals("wrong") && currOutputs.get(k).getBounds().equals("wrong")) {
-                            newOutput.setBounds("wrong");
-                        }
-                        if (currOutputs.get(i).getType().equals("wrong") && currOutputs.get(k).getType().equals("wrong")) {
-                            newOutput.setType("wrong");
-                        }*/
                         newList.add(result);
                     }
                     else {
-                       /*\ if (newList.get(0).getType().equals("wrong") && currOutputs.get(k).getType().equals("wrong")) {
-                            newList.get(0).setType("wrong");
-                        }
-                        if (newList.get(0).getBounds().equals("wrong") && currOutputs.get(k).getBounds().equals("wrong")) {
-                            newList.get(0).setBounds("wrong");
-                        }*/
                        newList.set(0, result);
                     }
                     currOutputs.set(i, newList.get(0));
@@ -197,142 +316,54 @@ public class main {
     }
 
     private static boolean isOrphan(Label userLabel, Label goldStandardLabel) {
-        if (userLabel.getStartTime()  < goldStandardLabel.getStartTime() - 0 && userLabel.getEndTime() < goldStandardLabel.getStartTime() - 0) {
+        if (userLabel.getStartTime()  < goldStandardLabel.getStartTime() && userLabel.getEndTime() < goldStandardLabel.getStartTime()) {
             return true;
         }
-        if (userLabel.getStartTime() > goldStandardLabel.getEndTime() + 0 && userLabel.getEndTime() > goldStandardLabel.getEndTime() + 0) {
+        if (userLabel.getStartTime() > goldStandardLabel.getEndTime() && userLabel.getEndTime() > goldStandardLabel.getEndTime()) {
             return true;
         }
         return false;
         //means it is just wrong bounds
     }
 
-    private static String shown(String taskName, String studyGroup) {
-        switch (taskName) {
-            case "drywall-red" :
-                if (studyGroup.equals("StudyE")) {
-                    return "Data";
-                }
-                else if (studyGroup.equals("StudyF")) {
-                    return "Video";
-                }
-                else if (studyGroup.equals("StudyG")) {
-                    return "Data";
-                }
-                else if (studyGroup.equals("StudyH")) {
-                    return "Video";
-                }
-                break;
-            case "drywall-blue":
-                if (studyGroup.equals("StudyE")) {
-                    return "Both";
-                }
-                else if (studyGroup.equals("StudyF")) {
-                    return "Both";
-                }
-                else if (studyGroup.equals("StudyG")) {
-                    return "Both";
-                }
-                else if (studyGroup.equals("StudyH")) {
-                    return "Both";
-                }
-                break;
-            case "drywall-pink" :
-                if (studyGroup.equals("StudyE")) {
-                    return "Data";
-                }
-                else if (studyGroup.equals("StudyF")) {
-                    return "Data";
-                }
-                else if (studyGroup.equals("StudyG")) {
-                    return "None";
-                }
-                else if (studyGroup.equals("StudyH")) {
-                    return "None";
-                }
-                break;
-            case "drywall-orange":
-                if (studyGroup.equals("StudyE")) {
-                    return "Video";
-                }
-                else if (studyGroup.equals("StudyF")) {
-                    return "Data";
-                }
-                else if (studyGroup.equals("StudyG")) {
-                    return "Video";
-                }
-                else if (studyGroup.equals("StudyH")) {
-                    return "Data";
-                }
-                break;
-            case "gait-red" :
-                if (studyGroup.equals("StudyE")) {
-                    return "Data";
-                }
-                else if (studyGroup.equals("StudyF")) {
-                    return "Video";
-                }
-                else if (studyGroup.equals("StudyG")) {
-                    return "Data";
-                }
-                else if (studyGroup.equals("StudyH")) {
-                    return "Video";
-                }
-                break;
-            case "gait-blue":
-                if (studyGroup.equals("StudyE")) {
-                    return "Both";
-                }
-                else if (studyGroup.equals("StudyF")) {
-                    return "Both";
-                }
-                else if (studyGroup.equals("StudyG")) {
-                    return "Both";
-                }
-                else if (studyGroup.equals("StudyH")) {
-                    return "Both";
-                }
-                break;
-            case "gait-pink" :
-                if (studyGroup.equals("StudyE")) {
-                    return "None";
-                }
-                else if (studyGroup.equals("StudyF")) {
-                    return "Fix";
-                    //TODO Figure this person out
-                }
-                else if (studyGroup.equals("StudyG")) {
-                    return "Data";
-                }
-                else if (studyGroup.equals("StudyH")) {
-                    return "Data";
-                }
-                break;
-            case "gait-yellow":
-                if (studyGroup.equals("StudyE")) {
-                    return "Video";
-                }
-                else if (studyGroup.equals("StudyF")) {
-                    return "Data";
-                }
-                else if (studyGroup.equals("StudyG")) {
-                    return "Video";
-                }
-                else if (studyGroup.equals("StudyH")) {
-                    return "Data";
-                }
-                break;
-        }
-        return null;
-    }
-
     private static void countCorrectGaitEvents(ArrayList<Output> allOutputs) {
-        String init = "Bounds, ID, numOfOverlapped, Type, Username, StartError, EndError \n ";
+        String init = "Bounds, ID, numOfOverlapped, Type, Username, StartError, EndError, Overlapping Labels \n ";
         StringBuilder sb = new StringBuilder(init);
+        String prevUser = "";
         for (Output output : allOutputs) {
-            if (output.getUserName().contains("csvaqua2")) {
-                sb.append(output.getBounds() + ", " + output.getId() + ", " + output.getNumOfOverlappedLabels() + ", " + output.getType() + ", " + output.getUserName() + ", " + output.getStartError() + ", "  + output.getEndError() + '\n');
-                if (output.getBounds().equals("correct") && output.getType().equals("correct")) {
+            if (output.getUserName() == null) {
+                continue;
+            }
+           //if (output.getNameOfTest().contains("drywall-blue")) {
+                StringBuilder overLaps = new StringBuilder();
+                for (int i = 0; i < output.getNumOfOverlappedLabels(); i++) {
+                    if (i == 0 && output.getNumOfOverlappedLabels() != 1) {
+                        overLaps.append("(" + output.getOverlaps().get(i) + ", ");
+                    }
+                    else if (i == 0 && output.getNumOfOverlappedLabels() == 1) {
+                        overLaps.append("(" + output.getOverlaps().get(i) + ")");
+                    }
+                    else if (i == output.getNumOfOverlappedLabels() - 1) {
+                        overLaps.append(output.getOverlaps().get(i) + ")");
+                    }
+                    else {
+                        overLaps.append(output.getOverlaps().get(i) + ", ");
+                    }
+
+               }
+               if (!prevUser.equals(output.getUserName())) {
+                   sb.append('\n');
+                   prevUser = output.getUserName();
+               }
+                if (output.getBounds().equals("wrong") && output.getType().equals("correct")) {
+                    sb.append(output.getBounds() + ", " + output.getId() + ", " + output.getNumOfOverlappedLabels() + ", " + output.getType() + ", " + output.getUserName() + ", " + output.getStartError() + ", " + output.getEndError() + ", " + overLaps.toString() + ", ISNUMTYPE ONLY" + '\n');
+                }
+                else {
+                    if (!output.getBounds().equals("NoAttempt")) {
+                        sb.append(output.getBounds() + ", " + output.getId() + ", " + output.getNumOfOverlappedLabels() + ", " + output.getType() + ", " + output.getUserName() + ", " + output.getStartError() + ", " + output.getEndError() + ", " + overLaps.toString() + '\n');
+                    }
+                }
+               if (output.getBounds().equals("correct") && output.getType().equals("correct")) {
                     numCorrect++;
                     if (output.getNameOfTest().contains("gait-blue")) {
                     }
@@ -349,57 +380,28 @@ public class main {
                 }
                 totalGait++;
             }
-        }
+        //}
         if (sb.toString().contains("correct") || sb.toString().contains("wrong")) {
             System.out.println(sb.toString());
         }
     }
 
-    private static void createCSV(File study, GoldStandard goldStandard, String taskName) throws IOException {
-        ArrayList<Output> allOutputs = new ArrayList<>();
+    private static void createCSV() throws IOException {
         ArrayList<Integer> ids = new ArrayList<>();
-        for (File userFile : study.listFiles()) {
-            ArrayList<Output> userOutputs = new ArrayList<>();
-            ids = new ArrayList<>();
-            UserLabels userLabels = new UserLabels();
-            FileReader reader = new FileReader(userFile);
-            JsonParser parser = new JsonParser();
-            JsonArray labels = (JsonArray) parser.parse(reader);
-            reader.close();//FIXME this one is new
-            for (int i = 0; i < labels.size(); i++) {
-                Gson gson = new Gson();
-                Label newLabel = gson.fromJson(labels.get(i), Label.class);
-                userLabels.add(newLabel);
-                String userID = findUserID(userFile.getName());
-                String testName = taskName;
-                String id = Integer.toString(newLabel.getId());
-                ArrayList<Output> resultOutputs = getResult(newLabel, goldStandard, userID, testName, id);
-               // allOutputs.addAll(resultOutputs);
-                userOutputs.addAll(resultOutputs);
-               // allOutputs = consolidateOverlaps(allOutputs);
-                userOutputs = consolidateOverlaps(userOutputs);
+        ArrayList<Output> userOutputs = new ArrayList<>();
 
+        for (Map.Entry goldStandard: goldStandardsMap.entrySet()) {
+            String testName = goldStandard.getKey().toString();
+            ArrayList<Label> goldStandardLabels = (ArrayList<Label>) goldStandard.getValue();
+            for (Label goldLabel: goldStandardLabels) {
+                ArrayList<Label> relevantUsers = userLabelsMap.get(testName);
+                testAgainstRelevantUserLabels(goldLabel, relevantUsers);
             }
-            for (int i = 0; i < userOutputs.size(); i++) {
-                if(!ids.contains(userOutputs.get(i).getId())) {
-                    ids.add(userOutputs.get(i).getId());
-                }
-            }
-
-            for (int j = 1; j < goldStandard.size(); j++) {
-                if (!ids.contains(j)) {
-                    Output noAttemptGoldStandard = new Output(findUserID(userFile.getName()), taskName, j, "NoAttempt", "NoAttempt", 0.0f, 0.0f, null, 0);
-                    userOutputs.add(noAttemptGoldStandard);
-                }
-            }
-            allOutputs.addAll(userOutputs);
-            //All the userLabels
-
         }
+
 
         for (Output output : allOutputs) {
             Gson gson = new Gson();
-            output.setShown(shown(taskName, study.getName()));
             int bounds;
 
             if (output.getBounds().equals("correct")) {
@@ -456,27 +458,12 @@ public class main {
     }
 
     public static void main(String[] args) throws IOException {
-        File homeFolder = new File(args[0]);
-        File[] taskFolder = homeFolder.listFiles();
-        for (File file : taskFolder) {
-            File[] innerFolder = file.listFiles();
-            //Each Task Folder has its own Gold Standard
-            GoldStandard goldStandard = new GoldStandard();
-            for (File innerFiles : innerFolder) {
-                if (innerFiles.listFiles() == null) {
-                    //TODO This is a gold standard
-                    try {
+        File goldStandardFile = new File(args[0]);
+        File userLabelsFile = new File(args[1]);
+        getLabelsForGoldStandard(goldStandardFile);
+        getLabelsForUserLabels(userLabelsFile);
+        createCSV();
 
-                        goldStandard = getLabelsForGoldStandard(innerFiles, goldStandard);
-                    }catch (FileNotFoundException e) {
-                        e.printStackTrace();
-                    }
-                }
-                else {
-                    createCSV(innerFiles, goldStandard, file.getName());
-                }
-            }
-        }
         System.out.println("Num Correct is " + numCorrect);
         System.out.println("Num Type only is " + numTypeCorrect);
         System.out.println("Num Bounds only is " + numBoundsCorrect);

@@ -2,7 +2,15 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="ed1965b7-0713-420c-90a8-9af0b28113b0" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/label_outputs.txt" beforeDir="false" afterPath="$PROJECT_DIR$/label_outputs.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/GoldStandard/GoldStandard.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/GoldStandard/GoldStandard.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/GoldStandard/Label.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/GoldStandard/Label.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/GoldStandard/Output.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/GoldStandard/Output.class" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/out/production/GoldStandard/main.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/GoldStandard/main.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/GoldStandard.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/GoldStandard.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Label.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Label.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Output.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Output.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.java" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -46,7 +54,7 @@
     <configuration name="main" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
       <option name="MAIN_CLASS_NAME" value="main" />
       <module name="GoldStandard" />
-      <option name="PROGRAM_PARAMETERS" value="C:\Users\Travi\OneDrive\Desktop\GoldStandards" />
+      <option name="PROGRAM_PARAMETERS" value="C:\Users\Travi\OneDrive\Desktop\NewGoldStandards\goldStandards.json C:\Users\Travi\OneDrive\Desktop\NewGoldStandards\allUserLabels.json" />
       <method v="2">
         <option name="Make" enabled="true" />
       </method>
@@ -88,16 +96,27 @@
       <breakpoints>
         <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/src/main.java</url>
-          <line>333</line>
-          <option name="timeStamp" value="14" />
+          <line>187</line>
+          <option name="timeStamp" value="23" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/main.java</url>
+          <line>259</line>
+          <option name="timeStamp" value="65" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
     <watches-manager>
       <configuration name="Application">
-        <watch expression="currOutputs.get(k)" language="JAVA" />
+        <watch expression="goldStandardsMap" language="JAVA" />
         <watch expression="currOutputs.get(i)" language="JAVA" />
+        <watch expression="currOutputs.get(k)" language="JAVA" />
+        <watch expression="userLabelsMap" language="JAVA" />
+        <watch expression="allOutputs" language="JAVA" />
       </configuration>
     </watches-manager>
+  </component>
+  <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/GoldStandard$main.ic" NAME="main Coverage Results" MODIFIED="1579047478240" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="idea" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" />
   </component>
 </project>
